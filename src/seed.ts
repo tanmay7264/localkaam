@@ -1,0 +1,107 @@
+import type { Job, Application, WorkerProfile, AttendanceRecord } from './types';
+
+export const seedJobs: Job[] = [
+  {
+    id: 'job-sales-assistant',
+    title: 'Sales Assistant',
+    employerId: 'emp-1',
+    employerName: 'Sharma Electronics',
+    location: 'FC Road, Pune',
+    salary: 15000,
+    workingHours: '9:00 AM - 6:00 PM',
+    skills: ['Basic English', 'Cash Handling', 'Customer Service'],
+    workersNeeded: 2,
+    distanceKm: 1.5,
+    published: true,
+    createdAt: Date.now() - 86400000,
+  },
+  {
+    id: 'job-delivery-boy',
+    title: 'Delivery Boy',
+    employerId: 'emp-2',
+    employerName: 'QuickMart',
+    location: 'Kothrud, Pune',
+    salary: 12000,
+    workingHours: '8:00 AM - 5:00 PM',
+    skills: ['Driving', 'Smartphone Use', 'Time Management'],
+    workersNeeded: 3,
+    distanceKm: 3.2,
+    published: true,
+    createdAt: Date.now() - 172800000,
+  },
+  {
+    id: 'job-cook-helper',
+    title: 'Cook Helper',
+    employerId: 'emp-3',
+    employerName: 'Hotel Maharaj',
+    location: 'Camp, Pune',
+    salary: 10000,
+    workingHours: '10:00 AM - 9:00 PM',
+    skills: ['Cooking Basics', 'Hygiene'],
+    workersNeeded: 1,
+    distanceKm: 2.0,
+    published: true,
+    createdAt: Date.now() - 259200000,
+  },
+  {
+    id: 'job-security-guard',
+    title: 'Security Guard',
+    employerId: 'emp-4',
+    employerName: 'SafeGuard Services',
+    location: 'Hinjewadi, Pune',
+    salary: 14000,
+    workingHours: '6:00 PM - 6:00 AM',
+    skills: ['Physical Fitness', 'Alertness'],
+    workersNeeded: 4,
+    distanceKm: 5.5,
+    published: true,
+    createdAt: Date.now() - 345600000,
+  },
+];
+
+export const seedWorkers: WorkerProfile[] = [
+  {
+    id: 'worker-demo',
+    name: 'Ramesh Patil',
+    skills: ['Basic English', 'Cash Handling', 'Customer Service'],
+    experienceYears: 2,
+    distanceKm: 1.5,
+    verified: true,
+  },
+  {
+    id: 'worker-2',
+    name: 'Suresh Kumar',
+    skills: ['Driving', 'Smartphone Use'],
+    experienceYears: 3,
+    distanceKm: 2.8,
+    verified: false,
+  },
+  {
+    id: 'worker-3',
+    name: 'Anil Deshmukh',
+    skills: ['Cooking Basics', 'Hygiene', 'Customer Service'],
+    experienceYears: 1,
+    distanceKm: 1.2,
+    verified: true,
+  },
+];
+
+export const seedApplications: Application[] = [
+  {
+    id: 'app-1',
+    jobId: 'job-sales-assistant',
+    workerId: 'worker-3',
+    workerName: 'Anil Deshmukh',
+    status: 'pending',
+    appliedAt: Date.now() - 3600000,
+  },
+];
+
+export const seedAttendance: AttendanceRecord[] = [];
+
+export const employerNames: Record<string, string> = {
+  'emp-1': 'Sharma Electronics',
+  'emp-2': 'QuickMart',
+  'emp-3': 'Hotel Maharaj',
+  'emp-4': 'SafeGuard Services',
+};

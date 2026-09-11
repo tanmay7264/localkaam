@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f1f5f9;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', 'Noto Sans Devanagari', sans-serif;
+}
+
+/* Keep the prototype feeling like a phone screen on desktop */
+.app-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  position: relative;
+  box-shadow: 0 0 40px rgba(15, 23, 42, 0.08);
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pop {
+  animation: pop-in 0.18s ease-out;
+}
+
+@keyframes slide-up {
+  0% {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}
+
+/* Larger tap targets for users not comfortable with smartphones */
+button,
+a,
+[role='button'] {
+  touch-action: manipulation;
+}
