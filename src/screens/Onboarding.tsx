@@ -10,9 +10,9 @@ import type { Role } from '@/types';
 export function LanguageScreen({ onContinue }: { onContinue: () => void }) {
   const { t, language, setLanguage } = useStore();
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 bg-gradient-to-b from-teal-700 to-teal-900">
+    <div className="min-h-full flex flex-col items-center justify-center px-6 py-12 bg-gradient-to-b from-teal-800 to-teal-950">
       <div className="text-center mb-12">
-        <div className="w-20 h-20 rounded-3xl bg-white/15 flex items-center justify-center mx-auto mb-6 backdrop-blur">
+        <div className="w-20 h-20 rounded-3xl bg-white/20 flex items-center justify-center mx-auto mb-6 border border-white/25">
           <HardHat size={44} className="text-white" strokeWidth={2.2} />
         </div>
         <h1 className="text-4xl font-extrabold text-white tracking-tight">{t('appName')}</h1>
@@ -30,11 +30,16 @@ export function LanguageScreen({ onContinue }: { onContinue: () => void }) {
             return (
               <button
                 key={lang.code}
+                type="button"
                 onClick={() => setLanguage(lang.code)}
-                className={`w-full flex items-center justify-between rounded-2xl px-6 py-5 text-xl font-semibold transition-all ${active ? 'bg-white text-teal-800 shadow-lg' : 'bg-white/15 text-white active:bg-white/25'}`}
+                className={`w-full flex items-center justify-between rounded-2xl px-6 py-5 text-xl font-semibold transition-all border ${
+                  active
+                    ? 'bg-white text-teal-900 border-white shadow-lg'
+                    : 'bg-teal-900/55 text-white border-white/35 active:bg-teal-900/75'
+                }`}
               >
                 <span>{lang.native}</span>
-                {active && <ChevronRight size={24} />}
+                {active && <ChevronRight size={24} className="text-teal-900" />}
               </button>
             );
           })}
@@ -42,7 +47,9 @@ export function LanguageScreen({ onContinue }: { onContinue: () => void }) {
       </div>
 
       <div className="w-full max-w-sm mt-10">
-        <Button fullWidth onClick={onContinue} className="bg-white text-teal-800 active:bg-teal-50">{t('continue')}</Button>
+        <Button fullWidth variant="inverse" onClick={onContinue}>
+          {t('continue')}
+        </Button>
         {!isSupabaseConfigured && <p className="mt-4 text-center text-sm text-teal-100">{t('demoMode')}</p>}
       </div>
     </div>
@@ -52,18 +59,32 @@ export function LanguageScreen({ onContinue }: { onContinue: () => void }) {
 export function RoleScreen({ onChoose }: { onChoose: (role: Role) => void }) {
   const { t } = useStore();
   return (
-    <div className="min-h-screen flex flex-col px-6 py-12 bg-slate-50">
-      <div className="text-center mb-10 mt-8"><h2 className="text-2xl font-bold text-slate-800">{t('chooseRole')}</h2></div>
+    <div className="min-h-full flex flex-col px-6 py-12 bg-slate-50">
+      <div className="text-center mb-10 mt-8">
+        <h2 className="text-2xl font-bold text-slate-900">{t('chooseRole')}</h2>
+      </div>
       <div className="space-y-4 max-w-sm mx-auto w-full">
-        <button onClick={() => onChoose('worker')} className="w-full bg-white rounded-3xl p-8 shadow-md border-2 border-transparent active:border-teal-500 flex flex-col items-center gap-3 transition-all">
-          <div className="w-16 h-16 rounded-2xl bg-teal-100 flex items-center justify-center"><HardHat size={36} className="text-teal-700" /></div>
-          <span className="text-xl font-bold text-slate-800">{t('iAmWorker')}</span>
-          <span className="text-sm text-slate-500">{t('findWork')}</span>
+        <button
+          type="button"
+          onClick={() => onChoose('worker')}
+          className="w-full bg-white rounded-3xl p-8 shadow-md border-2 border-slate-200 active:border-teal-600 flex flex-col items-center gap-3 transition-all"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-teal-100 flex items-center justify-center">
+            <HardHat size={36} className="text-teal-800" />
+          </div>
+          <span className="text-xl font-bold text-slate-900">{t('iAmWorker')}</span>
+          <span className="text-sm text-slate-600">{t('findWork')}</span>
         </button>
-        <button onClick={() => onChoose('employer')} className="w-full bg-white rounded-3xl p-8 shadow-md border-2 border-transparent active:border-teal-500 flex flex-col items-center gap-3 transition-all">
-          <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center"><Building2 size={36} className="text-blue-700" /></div>
-          <span className="text-xl font-bold text-slate-800">{t('iAmEmployer')}</span>
-          <span className="text-sm text-slate-500">{t('postJob')}</span>
+        <button
+          type="button"
+          onClick={() => onChoose('employer')}
+          className="w-full bg-white rounded-3xl p-8 shadow-md border-2 border-slate-200 active:border-teal-600 flex flex-col items-center gap-3 transition-all"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-sky-100 flex items-center justify-center">
+            <Building2 size={36} className="text-sky-800" />
+          </div>
+          <span className="text-xl font-bold text-slate-900">{t('iAmEmployer')}</span>
+          <span className="text-sm text-slate-600">{t('postJob')}</span>
         </button>
       </div>
     </div>
@@ -107,12 +128,12 @@ export function LoginScreen({ role, onDone }: { role: Role; onDone: () => void }
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-6 py-12 bg-slate-50">
+    <div className="min-h-full flex flex-col px-6 py-12 bg-slate-50">
       <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-        <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 ${isWorker ? 'bg-teal-100' : 'bg-blue-100'}`}>
-          {isWorker ? <HardHat size={40} className="text-teal-700" /> : <Building2 size={40} className="text-blue-700" />}
+        <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 ${isWorker ? 'bg-teal-100' : 'bg-sky-100'}`}>
+          {isWorker ? <HardHat size={40} className="text-teal-800" /> : <Building2 size={40} className="text-sky-800" />}
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-8">{t('login')}</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-8">{t('login')}</h2>
         <div className="w-full space-y-5">
           {step === 'phone' && (
             <Field label={t('phoneNumber')}>
@@ -134,11 +155,19 @@ export function LoginScreen({ role, onDone }: { role: Role; onDone: () => void }
               </Field>
             </>
           )}
-          {(formError || error) && <p className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700" role="alert">{formError || error}</p>}
+          {(formError || error) && (
+            <p className="rounded-xl bg-red-50 border border-red-300 px-4 py-3 text-sm text-red-800" role="alert">
+              {formError || error}
+            </p>
+          )}
           <Button fullWidth onClick={() => void submit()} disabled={busy}>
-            {busy ? <Loader2 className="mx-auto animate-spin" size={24} /> : step === 'phone' ? t('sendOtp') : step === 'otp' ? t('continue') : t('verifyAndContinue')}
+            {busy ? <Loader2 className="animate-spin" size={24} /> : step === 'phone' ? t('sendOtp') : step === 'otp' ? t('continue') : t('verifyAndContinue')}
           </Button>
-          {step !== 'phone' && <button type="button" className="w-full text-sm font-semibold text-teal-700" onClick={() => setStep(step === 'profile' ? 'otp' : 'phone')}>{t('back')}</button>}
+          {step !== 'phone' && (
+            <button type="button" className="w-full text-sm font-semibold text-teal-800 py-2" onClick={() => setStep(step === 'profile' ? 'otp' : 'phone')}>
+              {t('back')}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -167,37 +196,45 @@ export function VerificationScreen() {
   const emailVerified = session?.emailVerified;
 
   return (
-    <div className="min-h-screen bg-slate-50 px-6 py-12">
+    <div className="min-h-full bg-slate-50 px-6 py-12">
       <div className="max-w-sm mx-auto space-y-5">
         <div className="text-center">
-          <div className="w-20 h-20 rounded-3xl bg-teal-100 flex items-center justify-center mx-auto mb-5"><ShieldCheck size={42} className="text-teal-700" /></div>
-          <h1 className="text-2xl font-extrabold text-slate-800">{t('identityVerification')}</h1>
-          <p className="text-slate-500 mt-2">{t('identityVerificationHelp')}</p>
+          <div className="w-20 h-20 rounded-3xl bg-teal-100 flex items-center justify-center mx-auto mb-5">
+            <ShieldCheck size={42} className="text-teal-800" />
+          </div>
+          <h1 className="text-2xl font-extrabold text-slate-900">{t('identityVerification')}</h1>
+          <p className="text-slate-600 mt-2">{t('identityVerificationHelp')}</p>
         </div>
 
         <Card className="space-y-4">
           <div className="flex items-start gap-3">
-            <MailCheck className={emailVerified ? 'text-green-600' : 'text-amber-600'} />
-            <div className="flex-1">
-              <h2 className="font-bold text-slate-800">{t('emailVerification')}</h2>
-              <p className="text-sm text-slate-500 mt-1">{t('emailVerificationHelp')}</p>
-              {!emailVerified && <Button variant="outline" className="mt-3 text-base py-3" onClick={() => void run(() => sendEmailVerification(session?.email || ''), t('emailVerification'))} disabled={busy}>{t('resendEmail')}</Button>}
+            <MailCheck className={emailVerified ? 'text-green-700' : 'text-amber-700'} />
+            <div className="flex-1 min-w-0">
+              <h2 className="font-bold text-slate-900">{t('emailVerification')}</h2>
+              <p className="text-sm text-slate-600 mt-1">{t('emailVerificationHelp')}</p>
+              {!emailVerified && (
+                <Button variant="outline" className="mt-3 text-base py-3" onClick={() => void run(() => sendEmailVerification(session?.email || ''), t('emailVerification'))} disabled={busy}>
+                  {t('resendEmail')}
+                </Button>
+              )}
             </div>
           </div>
         </Card>
 
         <Card className="space-y-4">
           <div className="flex items-start gap-3">
-            <ShieldCheck className={status === 'verified' ? 'text-green-600' : 'text-teal-700'} />
-            <div className="flex-1">
-              <h2 className="font-bold text-slate-800">{t('identityVerification')}</h2>
-              <p className="text-sm text-slate-500 mt-1">{t('consentBody')}</p>
-              <p className="text-sm text-slate-500 mt-2">{t('consentData')} {t('consentRetention')}</p>
-              {status === 'pending' && <p className="mt-3 text-sm font-semibold text-amber-700">{t('verificationPending')}</p>}
-              {status === 'needs_review' && <p className="mt-3 text-sm font-semibold text-amber-700">{t('verificationReview')}</p>}
-              {status === 'rejected' || status === 'expired' ? <p className="mt-3 text-sm font-semibold text-red-700">{t('verificationFailed')}</p> : null}
-              {status === 'verified' ? <p className="mt-3 text-sm font-semibold text-green-700">{t('verificationSuccess')}</p> : (
-                <Button fullWidth className="mt-4 flex items-center justify-center gap-2" onClick={() => void run(startDigiLockerVerification, t('verificationPending'))} disabled={busy || !emailVerified}>
+            <ShieldCheck className={status === 'verified' ? 'text-green-700' : 'text-teal-800'} />
+            <div className="flex-1 min-w-0">
+              <h2 className="font-bold text-slate-900">{t('identityVerification')}</h2>
+              <p className="text-sm text-slate-600 mt-1">{t('consentBody')}</p>
+              <p className="text-sm text-slate-600 mt-2">{t('consentData')} {t('consentRetention')}</p>
+              {status === 'pending' && <p className="mt-3 text-sm font-semibold text-amber-800">{t('verificationPending')}</p>}
+              {status === 'needs_review' && <p className="mt-3 text-sm font-semibold text-amber-800">{t('verificationReview')}</p>}
+              {status === 'rejected' || status === 'expired' ? <p className="mt-3 text-sm font-semibold text-red-800">{t('verificationFailed')}</p> : null}
+              {status === 'verified' ? (
+                <p className="mt-3 text-sm font-semibold text-green-800">{t('verificationSuccess')}</p>
+              ) : (
+                <Button fullWidth className="mt-4" onClick={() => void run(startDigiLockerVerification, t('verificationPending'))} disabled={busy || !emailVerified}>
                   {busy ? <Loader2 className="animate-spin" size={20} /> : <ExternalLink size={20} />}
                   {t('verifyWithDigiLocker')}
                 </Button>
@@ -206,12 +243,37 @@ export function VerificationScreen() {
           </div>
         </Card>
 
-        {message && <p className="rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-600" role="status">{message}</p>}
-        {status === 'verified' && <Button variant="outline" fullWidth onClick={() => void run(async () => { await withdrawVerification(); await refreshProfile(); }, t('verificationFailed'))}>{t('withdrawVerification')}</Button>}
-        <button type="button" className="w-full text-sm font-semibold text-red-600" onClick={() => {
-          if (window.confirm(t('deleteAccountConfirm'))) void run(deleteAccount, t('accountDeleted'));
-        }}>{t('deleteAccount')}</button>
-        <Button variant="outline" fullWidth onClick={() => void logout()}>{t('logout')}</Button>
+        {message && (
+          <p className="rounded-xl bg-white border border-slate-300 px-4 py-3 text-sm text-slate-700" role="status">
+            {message}
+          </p>
+        )}
+        {status === 'verified' && (
+          <Button
+            variant="outline"
+            fullWidth
+            onClick={() =>
+              void run(async () => {
+                await withdrawVerification();
+                await refreshProfile();
+              }, t('verificationFailed'))
+            }
+          >
+            {t('withdrawVerification')}
+          </Button>
+        )}
+        <button
+          type="button"
+          className="w-full text-sm font-semibold text-red-700 py-2"
+          onClick={() => {
+            if (window.confirm(t('deleteAccountConfirm'))) void run(deleteAccount, t('accountDeleted'));
+          }}
+        >
+          {t('deleteAccount')}
+        </button>
+        <Button variant="outline" fullWidth onClick={() => void logout()}>
+          {t('logout')}
+        </Button>
       </div>
     </div>
   );

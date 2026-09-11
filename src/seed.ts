@@ -1,11 +1,14 @@
 import type { Job, Application, WorkerProfile, AttendanceRecord } from './types';
 
+export const DEMO_FALLBACK_PHONE = '+919876543210';
+
 export const seedJobs: Job[] = [
   {
     id: 'job-sales-assistant',
     title: 'Sales Assistant',
     employerId: 'emp-1',
     employerName: 'Sharma Electronics',
+    employerPhone: '+919820011001',
     location: 'FC Road, Pune',
     salary: 15000,
     workingHours: '9:00 AM - 6:00 PM',
@@ -20,6 +23,7 @@ export const seedJobs: Job[] = [
     title: 'Delivery Boy',
     employerId: 'emp-2',
     employerName: 'QuickMart',
+    employerPhone: '+919820022002',
     location: 'Kothrud, Pune',
     salary: 12000,
     workingHours: '8:00 AM - 5:00 PM',
@@ -34,6 +38,7 @@ export const seedJobs: Job[] = [
     title: 'Cook Helper',
     employerId: 'emp-3',
     employerName: 'Hotel Maharaj',
+    employerPhone: '+919820033003',
     location: 'Camp, Pune',
     salary: 10000,
     workingHours: '10:00 AM - 9:00 PM',
@@ -48,6 +53,7 @@ export const seedJobs: Job[] = [
     title: 'Security Guard',
     employerId: 'emp-4',
     employerName: 'SafeGuard Services',
+    employerPhone: '+919820044004',
     location: 'Hinjewadi, Pune',
     salary: 14000,
     workingHours: '6:00 PM - 6:00 AM',
@@ -92,8 +98,20 @@ export const seedApplications: Application[] = [
     jobId: 'job-sales-assistant',
     workerId: 'worker-3',
     workerName: 'Anil Deshmukh',
-    status: 'pending',
+    status: 'applied',
     appliedAt: Date.now() - 3600000,
+    peakStage: 'applied',
+    stageActions: {},
+  },
+  {
+    id: 'app-2',
+    jobId: 'job-delivery-boy',
+    workerId: 'worker-2',
+    workerName: 'Priya More',
+    status: 'shortlisted',
+    appliedAt: Date.now() - 86400000,
+    peakStage: 'shortlisted',
+    stageActions: {},
   },
 ];
 
@@ -105,3 +123,8 @@ export const employerNames: Record<string, string> = {
   'emp-3': 'Hotel Maharaj',
   'emp-4': 'SafeGuard Services',
 };
+
+export function whatsappUrl(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  return `https://wa.me/${digits}`;
+}

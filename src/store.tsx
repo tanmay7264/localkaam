@@ -9,10 +9,14 @@ import type {
   AttendanceRecord,
   AppStatus,
   VerificationStatus,
+  ChatMessage,
+  InterviewDetails,
+  HiringVerification,
 } from './types';
 import { makeT } from './i18n';
 import { seedJobs, seedApplications, seedWorkers, seedAttendance } from './seed';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
+import { normalizeAppStatus } from './lib/hiring';
 
 interface StoreState {
   language: Language;
@@ -21,6 +25,7 @@ interface StoreState {
   applications: Application[];
   workers: WorkerProfile[];
   attendance: AttendanceRecord[];
+  messagesByAppId: Record<string, ChatMessage[]>;
   loading: boolean;
   authReady: boolean;
   error: string | null;
@@ -36,10 +41,16 @@ interface StoreContextValue extends StoreState {
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   clearError: () => void;
-  createJob: (data: Omit<Job, 'id' | 'employerId' | 'employerName' | 'published' | 'createdAt' | 'distanceKm'>) => Promise<void>;
+  createJob: (data: Omit<Job, 'id' | 'employerId' | 'employerName' | 'employerPhone' | 'published' | 'createdAt' | 'distanceKm'>) => Promise<void>;
   applyToJob: (jobId: string) => Promise<void>;
   setApplicationStatus: (appId: string, status: AppStatus) => Promise<void>;
+  markStageAction: (appId: string, stageKey: string) => Promise<void>;
+  scheduleInterview: (appId: string, details: InterviewDetails) => Promise<void>;
+  setHiringVerification: (appId: string, hiringVerification: HiringVerification) => Promise<void>;
   markAttendance: (jobId: string, workerId: string, date: string, present: boolean) => Promise<void>;
+  ensureChatSeeded: (appId: string) => void;
+  sendMessage: (appId: string, text: string) => void;
+  getMessages: (appId: string) => ChatMessage[];
   getJob: (id: string) => Job | undefined;
   getApplicationsForJob: (jobId: string) => Application[];
   getWorkerApplications: (workerId: string) => Application[];
@@ -55,13 +66,34 @@ function loadDemoState(): StoreState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
+      const applications = Array.isArray(parsed.applications)
+        ? parsed.applications.map((application: Application) => {
+            const status = normalizeAppStatus(String(application.status || 'applied'));
+            const peakRaw = application.peakStage ? normalizeAppStatus(String(application.peakStage)) : undefined;
+            const peakStage =
+              peakRaw && peakRaw !== 'accepted' && peakRaw !== 'rejected'
+                ? peakRaw
+                : status !== 'accepted' && status !== 'rejected'
+                  ? status
+                  : 'applied';
+            return {
+              ...application,
+              status,
+              peakStage,
+              stageActions: application.stageActions || {},
+              interview: application.interview,
+              hiringVerification: application.hiringVerification,
+            };
+          })
+        : seedApplications;
       return {
         language: parsed.language || 'en',
         session: parsed.session || null,
-        jobs: parsed.jobs?.length ? parsed.jobs : seedJobs,
-        applications: parsed.applications || seedApplications,
+        jobs: mergeJobsWithSeedPhones(parsed.jobs?.length ? parsed.jobs : seedJobs),
+        applications,
         workers: parsed.workers?.length ? parsed.workers : seedWorkers,
         attendance: parsed.attendance || seedAttendance,
+        messagesByAppId: parsed.messagesByAppId && typeof parsed.messagesByAppId === 'object' ? parsed.messagesByAppId : {},
         loading: false,
         authReady: true,
         error: null,
@@ -77,10 +109,19 @@ function loadDemoState(): StoreState {
     applications: seedApplications,
     workers: seedWorkers,
     attendance: seedAttendance,
+    messagesByAppId: {},
     loading: false,
     authReady: true,
     error: null,
   };
+}
+
+function mergeJobsWithSeedPhones(jobs: Job[]): Job[] {
+  return jobs.map((job) => {
+    if (job.employerPhone) return job;
+    const seed = seedJobs.find((item) => item.id === job.id);
+    return seed?.employerPhone ? { ...job, employerPhone: seed.employerPhone } : job;
+  });
 }
 
 const emptyRemoteState: StoreState = {
@@ -90,6 +131,7 @@ const emptyRemoteState: StoreState = {
   applications: [],
   workers: [],
   attendance: [],
+  messagesByAppId: {},
   loading: true,
   authReady: false,
   error: null,
@@ -111,6 +153,7 @@ function toJob(row: Record<string, unknown>): Job {
     title: String(row.title),
     employerId: String(row.employer_id),
     employerName: String(row.employer_name),
+    employerPhone: row.employer_phone ? String(row.employer_phone) : undefined,
     location: String(row.location),
     salary: Number(row.salary),
     workingHours: String(row.working_hours),
@@ -123,13 +166,27 @@ function toJob(row: Record<string, unknown>): Job {
 }
 
 function toApplication(row: Record<string, unknown>): Application {
+  const status = normalizeAppStatus(String(row.status || 'applied'));
+  const peakRaw = row.peak_stage != null ? normalizeAppStatus(String(row.peak_stage)) : undefined;
+  const peakStage =
+    peakRaw && peakRaw !== 'accepted' && peakRaw !== 'rejected'
+      ? peakRaw
+      : status !== 'accepted' && status !== 'rejected'
+        ? status
+        : 'applied';
+  let stageActions: Application['stageActions'];
+  if (row.stage_actions && typeof row.stage_actions === 'object' && !Array.isArray(row.stage_actions)) {
+    stageActions = row.stage_actions as Application['stageActions'];
+  }
   return {
     id: String(row.id),
     jobId: String(row.job_id),
     workerId: String(row.worker_id),
     workerName: String(row.worker_name),
-    status: row.status as AppStatus,
+    status,
     appliedAt: new Date(String(row.applied_at)).getTime(),
+    peakStage,
+    stageActions,
   };
 }
 
@@ -232,6 +289,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       applications: state.applications,
       workers: state.workers,
       attendance: state.attendance,
+      messagesByAppId: state.messagesByAppId,
     }));
   }, [state]);
 
@@ -308,7 +366,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         requireVerified();
         if (!state.session) return;
         if (!supabase) {
-          const job: Job = { ...data, id: `job-${Date.now()}`, employerId: state.session.userId, employerName: state.session.name, distanceKm: 0, published: true, createdAt: Date.now() };
+          const job: Job = {
+            ...data,
+            id: `job-${Date.now()}`,
+            employerId: state.session.userId,
+            employerName: state.session.name,
+            employerPhone: state.session.phone || undefined,
+            distanceKm: 0,
+            published: true,
+            createdAt: Date.now(),
+          };
           setState((current) => ({ ...current, jobs: [job, ...current.jobs] }));
           return;
         }
@@ -327,26 +394,172 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!supabase) {
           const existing = state.applications.find((application) => application.jobId === jobId && application.workerId === state.session!.userId);
           if (existing) return;
-          const application: Application = { id: `app-${Date.now()}`, jobId, workerId: state.session.userId, workerName: state.session.name, status: 'pending', appliedAt: Date.now() };
+          const application: Application = {
+            id: `app-${Date.now()}`,
+            jobId,
+            workerId: state.session.userId,
+            workerName: state.session.name,
+            status: 'under_review',
+            appliedAt: Date.now(),
+            peakStage: 'under_review',
+            stageActions: {},
+          };
           setState((current) => ({ ...current, applications: [application, ...current.applications] }));
           return;
         }
-        const { data: row, error } = await supabase.from('applications').insert({ job_id: jobId, worker_id: state.session.userId, worker_name: state.session.name }).select('*').single();
+        const { data: row, error } = await supabase.from('applications').insert({ job_id: jobId, worker_id: state.session.userId, worker_name: state.session.name, status: 'under_review', peak_stage: 'under_review' }).select('*').single();
         if (error) throw error;
-        setState((current) => ({ ...current, applications: [toApplication(row as Record<string, unknown>), ...current.applications] }));
+        const created = toApplication(row as Record<string, unknown>);
+        setState((current) => ({
+          ...current,
+          applications: [{ ...created, status: 'under_review', peakStage: 'under_review' }, ...current.applications],
+        }));
       } catch (error) {
         setState((current) => ({ ...current, error: error instanceof Error ? error.message : 'Unable to apply for this job.' }));
         throw error;
       }
     },
     setApplicationStatus: async (appId, status) => {
+      const updateLocal = (application: Application): Application => {
+        const previousPeak =
+          application.status !== 'accepted' && application.status !== 'rejected'
+            ? application.status
+            : application.peakStage || 'applied';
+        const peakStage =
+          status === 'accepted' || status === 'rejected'
+            ? previousPeak === 'onboarding'
+              ? 'verification'
+              : previousPeak
+            : status;
+        return { ...application, status, peakStage };
+      };
       if (!supabase) {
-        setState((current) => ({ ...current, applications: current.applications.map((application) => (application.id === appId ? { ...application, status } : application)) }));
+        setState((current) => ({
+          ...current,
+          applications: current.applications.map((application) => (application.id === appId ? updateLocal(application) : application)),
+        }));
         return;
       }
-      const { error } = await supabase.from('applications').update({ status }).eq('id', appId);
+      const current = state.applications.find((application) => application.id === appId);
+      const previousPeak =
+        current && current.status !== 'accepted' && current.status !== 'rejected'
+          ? current.status
+          : current?.peakStage || 'applied';
+      const peakStage =
+        status === 'accepted' || status === 'rejected'
+          ? previousPeak === 'onboarding'
+            ? 'verification'
+            : previousPeak
+          : status;
+      const { error } = await supabase.from('applications').update({ status, peak_stage: peakStage }).eq('id', appId);
       if (error) throw error;
-      setState((current) => ({ ...current, applications: current.applications.map((application) => (application.id === appId ? { ...application, status } : application)) }));
+      setState((currentState) => ({
+        ...currentState,
+        applications: currentState.applications.map((application) => (application.id === appId ? updateLocal(application) : application)),
+      }));
+    },
+    markStageAction: async (appId, stageKey) => {
+      const updateLocal = (application: Application): Application => ({
+        ...application,
+        stageActions: { ...application.stageActions, [stageKey]: true },
+      });
+      if (!supabase) {
+        setState((current) => ({
+          ...current,
+          applications: current.applications.map((application) => (application.id === appId ? updateLocal(application) : application)),
+        }));
+        return;
+      }
+      const current = state.applications.find((application) => application.id === appId);
+      const stageActions = { ...current?.stageActions, [stageKey]: true };
+      const { error } = await supabase.from('applications').update({ stage_actions: stageActions }).eq('id', appId);
+      if (error) {
+        // Column may not exist yet — still update local UI
+        setState((currentState) => ({
+          ...currentState,
+          applications: currentState.applications.map((application) => (application.id === appId ? updateLocal(application) : application)),
+        }));
+        return;
+      }
+      setState((currentState) => ({
+        ...currentState,
+        applications: currentState.applications.map((application) => (application.id === appId ? updateLocal(application) : application)),
+      }));
+    },
+    scheduleInterview: async (appId, details) => {
+      const updateLocal = (application: Application): Application => ({
+        ...application,
+        status: 'interview',
+        peakStage: 'interview',
+        interview: details,
+        stageActions: { ...application.stageActions, schedule_interview: true },
+      });
+      if (!supabase) {
+        setState((current) => ({
+          ...current,
+          applications: current.applications.map((application) => (application.id === appId ? updateLocal(application) : application)),
+        }));
+        return;
+      }
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          status: 'interview',
+          peak_stage: 'interview',
+          interview_details: details,
+        })
+        .eq('id', appId);
+      if (error) {
+        setState((currentState) => ({
+          ...currentState,
+          applications: currentState.applications.map((application) => (application.id === appId ? updateLocal(application) : application)),
+        }));
+        return;
+      }
+      setState((currentState) => ({
+        ...currentState,
+        applications: currentState.applications.map((application) => (application.id === appId ? updateLocal(application) : application)),
+      }));
+    },
+    setHiringVerification: async (appId, hiringVerification) => {
+      const updateLocal = (application: Application): Application => ({
+        ...application,
+        hiringVerification,
+        stageActions:
+          hiringVerification.status === 'completed'
+            ? { ...application.stageActions, verification: true }
+            : application.stageActions,
+      });
+      if (!supabase) {
+        setState((current) => ({
+          ...current,
+          applications: current.applications.map((application) => (application.id === appId ? updateLocal(application) : application)),
+        }));
+        return;
+      }
+      const current = state.applications.find((application) => application.id === appId);
+      const stageActions =
+        hiringVerification.status === 'completed'
+          ? { ...current?.stageActions, verification: true }
+          : current?.stageActions;
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          hiring_verification: hiringVerification,
+          ...(stageActions ? { stage_actions: stageActions } : {}),
+        })
+        .eq('id', appId);
+      if (error) {
+        setState((currentState) => ({
+          ...currentState,
+          applications: currentState.applications.map((application) => (application.id === appId ? updateLocal(application) : application)),
+        }));
+        return;
+      }
+      setState((currentState) => ({
+        ...currentState,
+        applications: currentState.applications.map((application) => (application.id === appId ? updateLocal(application) : application)),
+      }));
     },
     markAttendance: async (jobId, workerId, date, present) => {
       if (!supabase) {
@@ -361,18 +574,78 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const attendance = toAttendance(row as Record<string, unknown>);
       setState((current) => ({ ...current, attendance: [...current.attendance.filter((item) => item.id !== attendance.id), attendance] }));
     },
+    ensureChatSeeded: (appId) => {
+      setState((current) => {
+        if (current.messagesByAppId[appId]?.length) return current;
+        const application = current.applications.find((item) => item.id === appId);
+        const job = application ? current.jobs.find((item) => item.id === application.jobId) : undefined;
+        const employerId = job?.employerId || 'employer';
+        const workerId = application?.workerId || 'worker';
+        const now = Date.now();
+        const thread: ChatMessage[] = [
+          {
+            id: `msg-1-${appId}`,
+            senderId: employerId,
+            text: t('chatDemoMsg1'),
+            at: now - 240000,
+          },
+          {
+            id: `msg-2-${appId}`,
+            senderId: workerId,
+            text: t('chatDemoMsg2'),
+            at: now - 180000,
+          },
+          {
+            id: `msg-3-${appId}`,
+            senderId: employerId,
+            text: t('chatDemoMsg3'),
+            at: now - 120000,
+          },
+          {
+            id: `msg-4-${appId}`,
+            senderId: employerId,
+            text: t('chatDemoMsg4'),
+            at: now - 60000,
+          },
+        ];
+        return {
+          ...current,
+          messagesByAppId: { ...current.messagesByAppId, [appId]: thread },
+        };
+      });
+    },
+    sendMessage: (appId, text) => {
+      const trimmed = text.trim();
+      if (!trimmed || !state.session) return;
+      const message: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        senderId: state.session.userId,
+        text: trimmed,
+        at: Date.now(),
+      };
+      setState((current) => {
+        const existing = current.messagesByAppId[appId] || [];
+        return {
+          ...current,
+          messagesByAppId: { ...current.messagesByAppId, [appId]: [...existing, message] },
+        };
+      });
+    },
+    getMessages: (appId) => state.messagesByAppId[appId] || [],
     getJob: (id) => state.jobs.find((job) => job.id === id),
     getApplicationsForJob: (jobId) => state.applications.filter((application) => application.jobId === jobId),
     getWorkerApplications: (workerId) => state.applications.filter((application) => application.workerId === workerId),
     getWorker: (id) => state.workers.find((worker) => worker.id === id),
     getAcceptedJobForWorker: (workerId) => {
-      const application = state.applications.find((item) => item.workerId === workerId && item.status === 'accepted');
+      const application = state.applications.find(
+        (item) => item.workerId === workerId && (item.status === 'accepted' || item.status === 'onboarding'),
+      );
       return application ? state.jobs.find((job) => job.id === application.jobId) : undefined;
     },
     getHiredWorkersForEmployer: (employerId) => {
       const result: { job: Job; worker: WorkerProfile; app: Application }[] = [];
       for (const application of state.applications) {
-        if (application.status !== 'accepted') continue;
+        if (application.status !== 'accepted' && application.status !== 'onboarding') continue;
         const job = state.jobs.find((item) => item.id === application.jobId);
         if (!job || job.employerId !== employerId) continue;
         const worker = state.workers.find((item) => item.id === application.workerId);
