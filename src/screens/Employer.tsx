@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '@/store';
 import { Button, Card, Badge, Header, Field, TextInput, EmptyState, Screen, ScreenBody } from '@/components/ui';
-import { HiringJourney } from '@/components/HiringProgress';
+import { HiringJourney, ApplicationStatusProgress } from '@/components/HiringProgress';
 import type { Job, Application, AppStatus } from '@/types';
 import {
   canReject,
@@ -437,7 +437,7 @@ export function EmployerCandidate({
         </Card>
 
         <Card>
-          <RecruiterStageStrip application={app} />
+          <ApplicationStatusProgress application={app} />
         </Card>
 
         {actions.length > 0 && (

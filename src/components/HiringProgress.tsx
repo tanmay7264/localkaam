@@ -4,7 +4,10 @@ import { useStore } from '@/store';
 import { Button } from '@/components/ui';
 import type { AppStatus, Application, PipelinePeakStage, Role } from '@/types';
 import {
+  APPLICATION_PROGRESS_STEPS,
   HIRING_STEPS,
+  applicationProgressLabelKey,
+  getApplicationProgressIndex,
   getCompletedThroughIndex,
   getHiringStepIndex,
   hiringStepLabelKey,
@@ -18,6 +21,87 @@ import {
 function formatInterviewDate(iso: string): string {
   const d = new Date(`${iso}T12:00:00`);
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+/** Employer-facing Application Status / Hiring Progress (7 stages). */
+export function ApplicationStatusProgress({ application }: { application: Application }) {
+  const { t } = useStore();
+  const currentIndex = getApplicationProgressIndex(application);
+  const rejected = application.status === 'rejected';
+  const selected = application.status === 'accepted' || application.status === 'onboarding';
+
+  return (
+    <div>
+      <h3 className="text-base font-bold text-slate-800 mb-1">{t('applicationStatusTitle')}</h3>
+      <p className="text-sm text-slate-600 mb-4">{t('hiringProgressSubtitle')}</p>
+      <ol className="space-y-0">
+        {APPLICATION_PROGRESS_STEPS.map((step, index) => {
+          const isFinal = step === 'final_decision';
+          const isRejectedFinal = isFinal && rejected;
+          const isAcceptedFinal = isFinal && selected;
+          const isCompleted = !rejected ? index < currentIndex || isAcceptedFinal : index < currentIndex;
+          const isCurrent = !isAcceptedFinal && index === currentIndex;
+          const isUpcoming = !rejected && !selected && index > currentIndex;
+
+          const label = t(applicationProgressLabelKey(step));
+
+          return (
+            <li key={step} className="flex gap-3">
+              <div className="flex flex-col items-center">
+                <div
+                  className={[
+                    'w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2',
+                    isRejectedFinal
+                      ? 'bg-red-700 border-red-700 text-white'
+                      : isCompleted || isAcceptedFinal
+                        ? 'bg-teal-800 border-teal-800 text-white'
+                        : isCurrent
+                          ? 'bg-white border-teal-700 text-teal-800 ring-4 ring-teal-100'
+                          : 'bg-slate-100 border-slate-300 text-slate-400',
+                  ].join(' ')}
+                  aria-current={isCurrent ? 'step' : undefined}
+                >
+                  {isRejectedFinal ? (
+                    <X size={16} strokeWidth={3} />
+                  ) : isCompleted || isAcceptedFinal ? (
+                    <Check size={16} strokeWidth={3} />
+                  ) : isCurrent ? (
+                    <span className="text-sm font-bold">→</span>
+                  ) : (
+                    <span className="text-xs font-bold">○</span>
+                  )}
+                </div>
+                {index < APPLICATION_PROGRESS_STEPS.length - 1 && (
+                  <div className={`w-0.5 flex-1 min-h-[20px] my-1 ${index < currentIndex ? 'bg-teal-700' : 'bg-slate-200'}`} />
+                )}
+              </div>
+              <div className={`pt-1 min-w-0 flex-1 ${index === APPLICATION_PROGRESS_STEPS.length - 1 ? 'pb-0' : 'pb-4'}`}>
+                <p
+                  className={[
+                    'text-base leading-tight',
+                    isRejectedFinal
+                      ? 'font-bold text-red-800'
+                      : isCurrent || isAcceptedFinal
+                        ? 'font-bold text-slate-900'
+                        : isCompleted
+                          ? 'font-semibold text-slate-800'
+                          : isUpcoming
+                            ? 'font-medium text-slate-400'
+                            : 'font-medium text-slate-600',
+                  ].join(' ')}
+                >
+                  {label}
+                </p>
+                {isCurrent && !isRejectedFinal && (
+                  <p className="text-sm text-teal-800 mt-0.5">{t('currentStage')}</p>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
 }
 
 export function HiringJourney({

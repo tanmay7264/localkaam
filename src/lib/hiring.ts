@@ -309,6 +309,57 @@ export function checkItemStatusLabelKey(status: CheckItemStatus): string {
 /** Demo time slots for schedule interview prototype. */
 export const DEMO_INTERVIEW_SLOTS = ['Tomorrow 10:00 AM', 'Tomorrow 2:00 PM', 'Day after 11:00 AM'];
 
+/** Employer Application Status / Hiring Progress spine (7 stages). */
+export const APPLICATION_PROGRESS_STEPS = [
+  'applied',
+  'under_review',
+  'shortlisted',
+  'employee_chat',
+  'interview',
+  'verification',
+  'final_decision',
+] as const;
+
+export type ApplicationProgressStep = (typeof APPLICATION_PROGRESS_STEPS)[number];
+
+export function applicationProgressLabelKey(step: ApplicationProgressStep): string {
+  switch (step) {
+    case 'applied':
+      return 'progressApplied';
+    case 'under_review':
+      return 'progressUnderReview';
+    case 'shortlisted':
+      return 'progressShortlisted';
+    case 'employee_chat':
+      return 'progressEmployeeChat';
+    case 'interview':
+      return 'progressInterview';
+    case 'verification':
+      return 'progressVerification';
+    case 'final_decision':
+      return 'progressFinalDecision';
+  }
+}
+
+/** Map application status onto the 7-step employer progress tracker. */
+export function getApplicationProgressIndex(application: Application): number {
+  const { status } = application;
+  if (status === 'accepted' || status === 'onboarding' || status === 'rejected') {
+    return APPLICATION_PROGRESS_STEPS.indexOf('final_decision');
+  }
+  if (status === 'verification' && isVerificationComplete(application)) {
+    return APPLICATION_PROGRESS_STEPS.indexOf('final_decision');
+  }
+  if (status === 'verification') return APPLICATION_PROGRESS_STEPS.indexOf('verification');
+  if (status === 'interview' || status === 'schedule_interview') {
+    return APPLICATION_PROGRESS_STEPS.indexOf('interview');
+  }
+  if (status === 'employee_chat') return APPLICATION_PROGRESS_STEPS.indexOf('employee_chat');
+  if (status === 'shortlisted') return APPLICATION_PROGRESS_STEPS.indexOf('shortlisted');
+  if (status === 'under_review') return APPLICATION_PROGRESS_STEPS.indexOf('under_review');
+  return APPLICATION_PROGRESS_STEPS.indexOf('applied');
+}
+
 /** Simplified recruiter dashboard stages. */
 export const RECRUITER_STAGES = [
   'applied',
