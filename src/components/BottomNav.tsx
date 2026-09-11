@@ -1,4 +1,4 @@
-import { Home, Briefcase, ClipboardList, User, FileText, ClipboardCheck } from 'lucide-react';
+import { Home, Briefcase, ClipboardList, User, ClipboardCheck } from 'lucide-react';
 import { useStore } from '@/store';
 import type { Role } from '@/types';
 

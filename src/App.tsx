@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StoreProvider, useStore } from '@/store';
 import { BottomNav } from '@/components/BottomNav';
-import { LanguageScreen, RoleScreen, LoginScreen } from '@/screens/Onboarding';
+import { LanguageScreen, RoleScreen, LoginScreen, VerificationScreen } from '@/screens/Onboarding';
 import {
   WorkerHome,
   WorkerJobDetails,
@@ -26,18 +26,30 @@ interface SuccessState {
 }
 
 function AppContent() {
-  const { session, logout, t } = useStore();
+  const { session, logout, t, authReady, loading, error, clearError, refreshProfile } = useStore();
   const [screen, setScreen] = useState<Screen>('language');
   const [pendingRole, setPendingRole] = useState<Role | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string>('');
   const [selectedAppId, setSelectedAppId] = useState<string>('');
   const [success, setSuccess] = useState<SuccessState | null>(null);
 
+  useEffect(() => {
+    const verificationResult = new URLSearchParams(window.location.search).get('verification');
+    if (verificationResult) {
+      window.history.replaceState({}, '', window.location.pathname);
+      void refreshProfile();
+    }
+  }, [refreshProfile]);
+
   const handleLogout = () => {
-    logout();
+    void logout();
     setScreen('language');
     setPendingRole(null);
   };
+
+  if (!authReady || loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 text-teal-700 font-semibold">{t('loading')}</div>;
+  }
 
   // Onboarding flow
   if (!session) {
@@ -65,7 +77,7 @@ function AppContent() {
         <div className="app-shell">
           <LoginScreen
             role={pendingRole}
-            onDone={() => setScreen(pendingRole === 'worker' ? 'worker-home' : 'employer-home')}
+            onDone={() => setScreen('verification')}
           />
         </div>
       );
@@ -75,6 +87,10 @@ function AppContent() {
         <LanguageScreen onContinue={() => setScreen('role')} />
       </div>
     );
+  }
+
+  if (session.verificationStatus !== 'verified' || !session.emailVerified) {
+    return <VerificationScreen />;
   }
 
   // Logged in
@@ -170,7 +186,7 @@ function AppContent() {
         );
         break;
       case 'employer-attendance':
-        content = <EmployerAttendance onOpenJob={openJob} />;
+        content = <EmployerAttendance />;
         break;
       case 'employer-profile':
         content = <EmployerProfile onLogout={handleLogout} />;
@@ -189,6 +205,11 @@ function AppContent() {
     <div className="app-shell flex flex-col">
       <div className="flex-1">{content}</div>
       <BottomNav role={session.role} current={screen} onNavigate={navigate} />
+      {error && (
+        <button type="button" onClick={clearError} className="fixed top-4 left-4 right-4 z-40 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-left text-sm text-red-700 shadow-lg" role="alert">
+          {error}
+        </button>
+      )}
       {success && (
         <SuccessOverlay
           title={success.title}

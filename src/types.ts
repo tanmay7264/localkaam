@@ -4,6 +4,8 @@ export type Role = 'worker' | 'employer';
 
 export type AppStatus = 'pending' | 'accepted' | 'rejected';
 
+export type VerificationStatus = 'unverified' | 'pending' | 'verified' | 'needs_review' | 'rejected' | 'expired';
+
 export interface Job {
   id: string;
   title: string;
@@ -49,6 +51,7 @@ export type Screen =
   | 'language'
   | 'role'
   | 'login'
+  | 'verification'
   | 'worker-home'
   | 'worker-job-details'
   | 'worker-applications'
@@ -65,4 +68,8 @@ export interface Session {
   role: Role;
   userId: string;
   name: string;
+  email: string;
+  phone: string;
+  emailVerified: boolean;
+  verificationStatus: VerificationStatus;
 }

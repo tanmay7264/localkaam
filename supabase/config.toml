@@ -1,0 +1,4 @@
+project_id = "localkaam"
+
+[functions.digilocker-callback]
+verify_jwt = false

@@ -1,4 +1,4 @@
-import { Briefcase, MapPin, IndianRupee, Clock, CheckCircle2, ClipboardList, Wallet, User, Star } from 'lucide-react';
+import { Briefcase, MapPin, IndianRupee, Clock, CheckCircle2, ClipboardList, Wallet, User, Star, ShieldCheck } from 'lucide-react';
 import { useStore } from '@/store';
 import { Button, Card, Badge, Header, EmptyState } from '@/components/ui';
 import type { Job, Application } from '@/types';
@@ -120,7 +120,7 @@ export function WorkerJobDetails({ jobId, onBack, onApplied }: { jobId: string; 
             </div>
           </Card>
         ) : (
-          <Button fullWidth onClick={() => { applyToJob(jobId); onApplied(); }}>
+          <Button fullWidth onClick={() => { void applyToJob(jobId).then(onApplied).catch(() => undefined); }}>
             {t('apply')}
           </Button>
         )}
@@ -290,13 +290,14 @@ export function WorkerProfile({ onLogout }: { onLogout: () => void }) {
           </div>
           <h2 className="text-xl font-bold text-slate-800">{session?.name}</h2>
           <p className="text-slate-500">{t('iAmWorker')}</p>
-          {job && (
-            <div className="mt-3 inline-flex">
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <Badge color="verified"><ShieldCheck size={14} /> {t('verified')}</Badge>
+            {job && (
               <Badge color="accepted">
                 <Star size={14} /> {job.title}
               </Badge>
-            </div>
-          )}
+            )}
+          </div>
         </Card>
 
         <Button fullWidth variant="danger" onClick={onLogout}>

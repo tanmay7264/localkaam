@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Briefcase, MapPin, IndianRupee, Clock, Plus, Users, User, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, ClipboardCheck, Wallet, Building2 } from 'lucide-react';
+import { Briefcase, MapPin, IndianRupee, Plus, Users, User, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, ClipboardCheck, Wallet, Building2 } from 'lucide-react';
 import { useStore } from '@/store';
 import { Button, Card, Badge, Header, Field, TextInput, EmptyState } from '@/components/ui';
 import type { Job, Application } from '@/types';
@@ -76,15 +76,14 @@ export function EmployerCreateJob({ onBack, onPublished }: { onBack: () => void;
 
   const handlePublish = () => {
     if (!canPublish) return;
-    createJob({
+    void createJob({
       title: title.trim(),
       location: location.trim(),
       salary: parseInt(salary, 10) || 0,
       workingHours: workingHours.trim(),
       skills: skills.trim() ? skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
       workersNeeded: parseInt(workersNeeded, 10) || 1,
-    });
-    onPublished();
+    }).then(onPublished).catch(() => undefined);
   };
 
   return (
@@ -264,7 +263,7 @@ export function EmployerCandidate({ appId, onBack }: { appId: string; onBack: ()
   );
 }
 
-export function EmployerAttendance({ onOpenJob }: { onOpenJob: (jobId: string) => void }) {
+export function EmployerAttendance() {
   const { t, getHiredWorkersForEmployer, session, attendance, markAttendance } = useStore();
   const hired = getHiredWorkersForEmployer(session?.userId || '');
   const today = new Date().toISOString().slice(0, 10);
@@ -360,10 +359,9 @@ export function EmployerProfile({ onLogout }: { onLogout: () => void }) {
           </div>
           <h2 className="text-xl font-bold text-slate-800">{session?.name}</h2>
           <p className="text-slate-500">{t('iAmEmployer')}</p>
-          <div className="mt-3 inline-flex">
-            <Badge color="neutral">
-              <Briefcase size={14} /> {myJobs.length} {t('jobs')}
-            </Badge>
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <Badge color="verified"><ShieldCheck size={14} /> {t('verified')}</Badge>
+            <Badge color="neutral"><Briefcase size={14} /> {myJobs.length} {t('jobs')}</Badge>
           </div>
         </Card>
 
